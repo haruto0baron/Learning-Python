@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+matplotlib.rcParams["font.family"] = "Noto Sans CJK JP"
 import os
 
 
