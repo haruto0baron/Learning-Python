@@ -1,17 +1,16 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-matplotlib.rcParams["font.family"] = "Noto Sans CJK JP"
 import os
 
 
 # =============================
-# 設定
+# Settings
 # =============================
 
-SIZE = 100          # 世界の大きさ
-MAX_STEPS = 500     # 最大世代
-TRIALS = 20         # 各密度の試行回数
+SIZE = 100
+MAX_STEPS = 500
+TRIALS = 20
 
 densities = np.arange(
     0.05,
@@ -20,7 +19,6 @@ densities = np.arange(
 )
 
 
-# 保存フォルダ
 os.makedirs(
     "lifegame_results",
     exist_ok=True
@@ -28,7 +26,7 @@ os.makedirs(
 
 
 # =============================
-# ライフゲーム処理
+# Game of Life Rule
 # =============================
 
 def next_generation(world):
@@ -45,14 +43,14 @@ def next_generation(world):
     )
 
 
-    alive = (
+    survive = (
         (world == 1)
         &
         ((neighbors == 2) | (neighbors == 3))
     )
 
 
-    born = (
+    birth = (
         (world == 0)
         &
         (neighbors == 3)
@@ -61,29 +59,27 @@ def next_generation(world):
 
     new_world = np.zeros_like(world)
 
-    new_world[alive | born] = 1
-
+    new_world[survive | birth] = 1
 
     return new_world
 
 
 
 # =============================
-# 初期世界作成
+# Create Initial World
 # =============================
 
 def create_world(density):
 
     return (
         np.random.random((SIZE, SIZE))
-        <
-        density
+        < density
     ).astype(int)
 
 
 
 # =============================
-# 1回シミュレーション
+# Simulation
 # =============================
 
 def simulate(density):
@@ -95,15 +91,14 @@ def simulate(density):
 
     for step in range(MAX_STEPS):
 
-        alive_cells = np.sum(world)
+        alive = np.sum(world)
 
-        history.append(alive_cells)
+        history.append(alive)
 
 
         new_world = next_generation(world)
 
 
-        # 変化なし
         if np.array_equal(
             world,
             new_world
@@ -115,17 +110,16 @@ def simulate(density):
 
 
 
-    final_cells = np.sum(world)
-
+    final_population = np.sum(world)
 
     extinct = (
-        final_cells == 0
+        final_population == 0
     )
 
 
     return (
         step,
-        final_cells,
+        final_population,
         extinct,
         history
     )
@@ -133,19 +127,20 @@ def simulate(density):
 
 
 # =============================
-# 実験開始
+# Experiment
 # =============================
 
 results = []
 
 
-print("実験開始")
+print("Experiment started")
 
 
 for density in densities:
 
-    times = []
-    populations = []
+    stabilization_times = []
+    final_populations = []
+
     extinct_count = 0
 
 
@@ -156,9 +151,13 @@ for density in densities:
         )
 
 
-        times.append(steps)
+        stabilization_times.append(
+            steps
+        )
 
-        populations.append(final)
+        final_populations.append(
+            final
+        )
 
 
         if extinct:
@@ -169,30 +168,30 @@ for density in densities:
     results.append(
         [
             density,
-            np.mean(times),
-            np.mean(populations),
+            np.mean(stabilization_times),
+            np.mean(final_populations),
             extinct_count / TRIALS * 100
         ]
     )
 
 
     print(
-        f"密度 {density:.2f} 完了"
+        f"Density {density:.2f} completed"
     )
 
 
 
 # =============================
-# 表作成
+# Create Result Table
 # =============================
 
 df = pd.DataFrame(
     results,
     columns=[
-        "初期密度",
-        "平均安定世代",
-        "平均最終生存セル数",
-        "全滅率(%)"
+        "Initial Density",
+        "Average Stabilization Generation",
+        "Average Final Alive Cells",
+        "Extinction Rate (%)"
     ]
 )
 
@@ -200,50 +199,45 @@ df = pd.DataFrame(
 df = df.round(2)
 
 
-print("\n===== 実験結果 =====")
+print("\n===== Results =====")
 
 print(df)
 
 
 
-# CSV保存
-
 df.to_csv(
     "lifegame_results/result.csv",
-    index=False,
-    encoding="utf-8-sig"
+    index=False
 )
 
 
 
 # =============================
-# グラフ1
-# 安定までの時間
+# Graph 1
+# Stabilization Time
 # =============================
 
-plt.figure(
-    figsize=(8,5)
-)
-
+plt.figure(figsize=(8,5))
 
 plt.plot(
-    df["初期密度"],
-    df["平均安定世代"],
-    marker="o"
+    df["Initial Density"],
+    df["Average Stabilization Generation"],
+    marker="o",
+    linewidth=2
 )
 
 
 plt.xlabel(
-    "初期密度"
+    "Initial Density"
 )
 
 plt.ylabel(
-    "平均安定世代"
+    "Average Stabilization Generation"
 )
 
 
 plt.title(
-    "初期密度と安定までの時間"
+    "Initial Density vs Stabilization Time"
 )
 
 
@@ -251,7 +245,7 @@ plt.grid()
 
 
 plt.savefig(
-    "lifegame_results/time.png",
+    "lifegame_results/stabilization_time.png",
     dpi=300
 )
 
@@ -261,35 +255,34 @@ plt.show()
 
 
 # =============================
-# グラフ2
-# 最終生存数
+# Graph 2
+# Final Population
 # =============================
 
-plt.figure(
-    figsize=(8,5)
-)
+plt.figure(figsize=(8,5))
 
 
 plt.plot(
-    df["初期密度"],
-    df["平均最終生存セル数"],
+    df["Initial Density"],
+    df["Average Final Alive Cells"],
+    marker="o",
     color="green",
-    marker="o"
+    linewidth=2
 )
 
 
 plt.xlabel(
-    "初期密度"
+    "Initial Density"
 )
 
 
 plt.ylabel(
-    "最終生存セル数"
+    "Average Final Alive Cells"
 )
 
 
 plt.title(
-    "初期密度と最終生存セル数"
+    "Initial Density vs Final Population"
 )
 
 
@@ -297,7 +290,7 @@ plt.grid()
 
 
 plt.savefig(
-    "lifegame_results/population.png",
+    "lifegame_results/final_population.png",
     dpi=300
 )
 
@@ -307,34 +300,32 @@ plt.show()
 
 
 # =============================
-# グラフ3
-# 全滅率
+# Graph 3
+# Extinction Rate
 # =============================
 
-plt.figure(
-    figsize=(8,5)
-)
+plt.figure(figsize=(8,5))
 
 
 plt.bar(
-    df["初期密度"],
-    df["全滅率(%)"],
+    df["Initial Density"],
+    df["Extinction Rate (%)"],
     width=0.04
 )
 
 
 plt.xlabel(
-    "初期密度"
+    "Initial Density"
 )
 
 
 plt.ylabel(
-    "全滅率(%)"
+    "Extinction Rate (%)"
 )
 
 
 plt.title(
-    "初期密度と全滅率"
+    "Initial Density vs Extinction Rate"
 )
 
 
@@ -344,7 +335,7 @@ plt.grid(
 
 
 plt.savefig(
-    "lifegame_results/extinction.png",
+    "lifegame_results/extinction_rate.png",
     dpi=300
 )
 
@@ -353,5 +344,5 @@ plt.show()
 
 
 
-print("\n完了しました")
-print("lifegame_results フォルダを確認してください")
+print("\nFinished!")
+print("Check the lifegame_results folder.")
